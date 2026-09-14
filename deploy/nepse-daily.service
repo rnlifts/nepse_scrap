@@ -1,0 +1,18 @@
+[Unit]
+Description=NEPSE daily price scrape + sync
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=nepse
+WorkingDirectory=/opt/nepse-data
+# .env holds SYNC_STRATEGY etc.
+EnvironmentFile=-/opt/nepse-data/.env
+ExecStart=/opt/nepse-data/scripts/run_daily.sh
+# don't hammer if it fails; the timer will try again tomorrow
+TimeoutStartSec=1800
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

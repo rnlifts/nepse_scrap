@@ -1,0 +1,12 @@
+# Runtime deps. Python 3.11+ (uses tomllib from stdlib).
+playwright==1.48.0
+# Everything else (sqlite3, csv, argparse, logging) is stdlib.
+
+# Optional: only needed if [sheets] enabled=true in config/settings.toml
+gspread==6.1.4
+google-auth==2.35.0
+
+# After `pip install -r requirements.txt`, install the browser once:
+#   playwright install chromium         # bundled fallback
+# On the VPS, prefer the system Google Chrome (channel="chrome"):
+#   see deploy/SETUP.md

@@ -1,0 +1,26 @@
+# data & logs are NOT source — synced to your local machine separately
+data/
+logs/
+!data/.gitkeep
+!logs/.gitkeep
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# local overrides
+.env
+config/settings.local.toml
+
+# Google service account key — never commit credentials
+config/service_account.json
+
+# config/symbols.csv is intentionally NOT ignored — it's written by
+# `refresh-symbols` but small and worth versioning (when did a ticker appear).
+
+# os
+.DS_Store
+Thumbs.db

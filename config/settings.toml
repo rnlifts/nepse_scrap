@@ -1,0 +1,65 @@
+# nepse-scraper configuration
+# Every value can be overridden with an env var of the same name, upper-cased
+# and prefixed with NEPSE_  (e.g. NEPSE_HEADLESS=true).
+
+[source]
+base_url      = "https://nepsealpha.com/nepse-data"
+# How far back to reach on a full backfill. The site currently holds data
+# from 2000-01-03; anything earlier is simply clamped by the server.
+backfill_start = "1990-01-01"
+# price_type: "unadjusted" (has real volume) or "adjusted" (OHLC only, volume 0)
+price_type    = "unadjusted"
+# time_frame: "daily" or "weekly"  ("monthly" needs a logged-in account)
+time_frame    = "daily"
+
+[symbols]
+# Instruments to track. "NEPSE" is the index. Add tickers or sector codes
+# (BANKING, HYDROPOWER, ...) here, or use "ALL" / "ALL:equity" / "ALL:index"
+# after running `python -m nepse_scraper refresh-symbols`.
+list = ["NEPSE"]
+csv_path = "config/symbols.csv"    # written by refresh-symbols, read by ALL
+dead_path = "config/dead_symbols.txt"  # symbols confirmed to have no data; auto-skipped by ALL
+
+[browser]
+# headless=false is the reliable setting (Cloudflare blocks HeadlessChrome).
+# On a Linux VPS run it under xvfb-run so "headed" needs no real display.
+headless        = false
+# "chrome" uses the system Google Chrome install (recommended).
+# Fallback: "chromium" uses Playwright's bundled build.
+channel         = "chrome"
+nav_timeout_s   = 60
+cf_clear_timeout_s = 45          # max wait for the "Just a moment" screen to pass
+
+[fetch]
+max_attempts    = 4
+backoff_base_s  = 5              # waits: 5s, 15s, 35s ... (base * (2^n - 1))
+per_request_pause_s = 1.0         # polite gap between symbols in multi-symbol runs
+                                   # (safe to lower: it's an in-page fetch() on an
+                                   # already-loaded browser, not a fresh page load)
+response_timeout_s = 45
+
+[daily]
+# Incremental runs re-pull a short trailing window and upsert it,
+# so late corrections on the site are picked up.
+lookback_days   = 10
+
+[store]
+db_path      = "data/nepse.db"
+csv_dir      = "data/csv"
+raw_dir      = "data/raw"        # raw JSON responses, kept for replay/debug
+keep_raw     = true
+raw_retention_days = 14          # prune raw/<date>/ folders older than this each run
+
+[logging]
+level        = "INFO"            # DEBUG | INFO | WARNING | ERROR
+dir          = "logs"
+retention_days = 30              # prune logs/nepse-*.log older than this each run
+
+[sheets]
+# Optional: mirror selected symbols into a Google Sheet after each run.
+# Setup steps: deploy/GOOGLE_SHEETS.md
+enabled           = false
+credentials_path  = "config/service_account.json"   # gitignored — never commit this
+spreadsheet_id    = ""            # the long id in the sheet's URL
+sync_symbols      = ["NEPSE"]     # keep this short — one worksheet tab per symbol
+pause_s           = 1.2           # gap between tab writes (Sheets API quota is per-minute)

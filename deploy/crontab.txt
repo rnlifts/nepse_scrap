@@ -1,0 +1,8 @@
+# Alternative to the systemd timer.  Install with:  crontab deploy/crontab.txt
+# Assumes the box is on UTC.  17:45 NPT == 12:00 UTC.
+# NEPSE trades Mon-Fri since April 2026 (Sat/Sun weekend) -> cron weekday 1-5.
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+00 12 * * 1-5  cd /opt/nepse-data && scripts/run_daily.sh >> logs/cron.log 2>&1
