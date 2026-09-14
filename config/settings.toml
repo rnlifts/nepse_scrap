@@ -58,8 +58,8 @@ retention_days = 30              # prune logs/nepse-*.log older than this each r
 [sheets]
 # Optional: mirror selected symbols into a Google Sheet after each run.
 # Setup steps: deploy/GOOGLE_SHEETS.md
-enabled           = false
+enabled           = true
 credentials_path  = "config/service_account.json"   # gitignored — never commit this
-spreadsheet_id    = ""            # the long id in the sheet's URL
-sync_symbols      = ["NEPSE"]     # keep this short — one worksheet tab per symbol
+spreadsheet_id    = "1ojXvm4byhYFg20HDTlnFgvr38TUkyX0r8OWaXEe2d9A"
+sync_symbols      = ["NEPSE", "NABIL", "ADBL", "BANKING", "HYDROPOWER"]  # edit anytime
 pause_s           = 1.2           # gap between tab writes (Sheets API quota is per-minute)
