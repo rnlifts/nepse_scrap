@@ -163,7 +163,7 @@ def _run_fetch(cfg, mode, symbols, time_frame, price_type, start, end):
                 except Exception as e:  # noqa: BLE001
                     failed += 1
                     log.error("[%d/%d] %s FAILED: %s", i, len(symbols), sym, e)
-                    if "no data" in str(e).lower():
+                    if "empty data array" in str(e).lower():
                         newly_dead.append(sym)
                 if i < len(symbols):
                     time.sleep(pause)
