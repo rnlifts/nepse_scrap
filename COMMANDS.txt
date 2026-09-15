@@ -1,0 +1,142 @@
+========================================================================
+NEPSE SCRAPER — COMMAND REFERENCE
+========================================================================
+Project folder: C:\Users\user\Desktop\project nepse\nepse-data
+
+BEFORE ANY COMMAND — open PowerShell and run these two lines first
+(this machine has a broken CURL_CA_BUNDLE from a Postgres install that
+breaks Python's HTTPS unless overridden every session):
+
+    cd "C:\Users\user\Desktop\project nepse\nepse-data"
+    $env:CURL_CA_BUNDLE = (python -c "import certifi; print(certifi.where())")
+    $env:SSL_CERT_FILE  = $env:CURL_CA_BUNDLE
+    $env:PYTHONPATH     = "src"
+
+Do this once per PowerShell window you open. The scheduled task
+(run_daily_windows.ps1) already does this automatically — you only
+need it when running commands yourself, by hand.
+
+========================================================================
+1. NORMAL DAY-TO-DAY — you don't need to do anything
+========================================================================
+Windows Task Scheduler ("NepseDataDaily") runs automatically:
+  - Mon-Fri at 17:45 (your PC's local time = Nepal time)
+  - Pulls the last ~10 days for all tracked symbols, upserts the DB
+  - Automatically pushes to Google Sheets afterward
+  - Requires: PC turned on and you logged in at that time (screen
+    lock is fine, sleep/shutdown is not)
+
+Check it's scheduled correctly:
+    Get-ScheduledTask -TaskName "NepseDataDaily"
+
+Check what it did on its last run (today's log file):
+    type "logs\task-<TODAYS-DATE>.log"
+    (e.g. logs\task-2026-09-15.log)
+
+========================================================================
+2. "I FORGOT TO TURN ON MY LAPTOP / MISSED A DAY"
+========================================================================
+Run this — it self-catches-up (fetches the last 10 days, upserts,
+harmless to re-run even if some of it already exists):
+
+    python -m nepse_scraper daily --symbols ALL
+
+CAUTION — if the market is CURRENTLY OPEN when you run this, add
+--end with YESTERDAY'S date so you don't pull a half-finished session:
+
+    python -m nepse_scraper daily --symbols ALL --end 2026-09-14
+
+(replace 2026-09-14 with the actual most recent CLOSED trading day)
+
+========================================================================
+3. CHECK WHAT'S IN THE DATABASE
+========================================================================
+    python -m nepse_scraper status
+
+Shows every symbol, row count, date range, and the last 5 run results
+(ok/failed counts, timestamps).
+
+========================================================================
+4. FIRST-TIME / FULL HISTORY PULL FOR A SYMBOL (backfill)
+========================================================================
+One symbol, full history:
+    python -m nepse_scraper backfill --symbols NABIL
+
+Several symbols at once:
+    python -m nepse_scraper backfill --symbols NABIL,ADBL,HYDROPOWER
+
+Only use "backfill" for a symbol you've NEVER pulled before, or if you
+want to force a full re-pull. For normal updates, use "daily" (much
+faster — only asks for recent days, not all history).
+
+========================================================================
+5. TRACKING A NEW STOCK YOU HAVEN'T SCRAPED BEFORE
+========================================================================
+Step 1 — refresh the master symbol list (only needed occasionally,
+e.g. if a brand-new company just listed on NEPSE):
+    python -m nepse_scraper refresh-symbols
+
+Step 2 — backfill that specific symbol's full history:
+    python -m nepse_scraper backfill --symbols TICKER_HERE
+
+Step 3 — add it to config\settings.toml so future daily runs keep it
+updated automatically:
+    Open config\settings.toml, find [symbols] -> list = [...],
+    add the ticker there.
+
+========================================================================
+6. PULLING EVERY STOCK ON THE MARKET (~376 symbols)
+========================================================================
+Full history, every symbol (takes ~15-60 min depending on how many
+are new vs. already in the DB):
+    python -m nepse_scraper backfill --symbols ALL
+
+Just the ~393 ordinary stocks (no sector indices):
+    python -m nepse_scraper backfill --symbols ALL:equity
+
+Just the ~17 sector/composite indices (BANKING, HYDROPOWER, etc.):
+    python -m nepse_scraper backfill --symbols ALL:index
+
+Symbols confirmed to have zero data (delisted/renamed tickers) are
+tracked in config\dead_symbols.txt and automatically skipped by ALL —
+you don't need to maintain that file yourself.
+
+========================================================================
+7. GOOGLE SHEETS
+========================================================================
+Push data to Sheets right now, without running a full scrape:
+    python -m nepse_scraper sync-sheets
+
+Which symbols get mirrored to Sheets is controlled in
+config\settings.toml under [sheets] -> sync_symbols = [...]
+Currently: NEPSE, NABIL, ADBL, BANKING, HYDROPOWER
+(edit that list, save, and the next daily/backfill run — or a manual
+sync-sheets — will pick up the change)
+
+========================================================================
+8. REWRITE CSV FILES FROM THE DATABASE
+========================================================================
+If you ever hand-delete or mess up a CSV in data\csv\, regenerate all
+of them straight from the (unaffected) database:
+    python -m nepse_scraper export
+
+========================================================================
+9. TESTING / VERIFYING THE CODE STILL WORKS
+========================================================================
+    python tests\test_store.py
+
+Should print "ok". Run this after any code changes.
+
+========================================================================
+QUICK DECISION GUIDE
+========================================================================
+"I just want today's/recent prices"          -> daily
+"I missed some days"                          -> daily --symbols ALL
+"Market is open right now, be careful"        -> add --end YESTERDAY
+"Brand new symbol, never pulled before"       -> backfill --symbols X
+"I want everything the market has"            -> backfill --symbols ALL
+"Is my data up to date?"                      -> status
+"Push to Google Sheets right now"             -> sync-sheets
+"A CSV file looks wrong"                      -> export
+"Did my code changes break anything?"         -> tests\test_store.py
+========================================================================
