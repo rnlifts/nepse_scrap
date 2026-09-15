@@ -16,7 +16,8 @@ time_frame    = "daily"
 # Instruments to track. "NEPSE" is the index. Add tickers or sector codes
 # (BANKING, HYDROPOWER, ...) here, or use "ALL" / "ALL:equity" / "ALL:index"
 # after running `python -m nepse_scraper refresh-symbols`.
-list = ["NEPSE"]
+list = ["ALL"]      # was ["NEPSE"] -- that meant the scheduled daily task was
+                    # only ever refreshing the index, not the other 375 symbols
 csv_path = "config/symbols.csv"    # written by refresh-symbols, read by ALL
 dead_path = "config/dead_symbols.txt"  # symbols confirmed to have no data; auto-skipped by ALL
 

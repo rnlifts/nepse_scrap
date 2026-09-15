@@ -40,6 +40,7 @@ def _args(argv):
     p.add_argument("--end", help="YYYY-MM-DD")
     p.add_argument("--time-frame", dest="time_frame", choices=["daily", "weekly"])
     p.add_argument("--price-type", dest="price_type", choices=["unadjusted", "adjusted"])
+    p.add_argument("--no-sheets", action="store_true", help="skip the automatic post-run Google Sheets sync")
     return p.parse_args(argv)
 
 
@@ -115,7 +116,7 @@ def cmd_export(cfg):
         store.close()
 
 
-def _run_fetch(cfg, mode, symbols, time_frame, price_type, start, end):
+def _run_fetch(cfg, mode, symbols, time_frame, price_type, start, end, sync_sheets_after=True):
     log = get_logger(mode)
     store = Store(cfg.path("store", "db_path"))
     run_id = store.start_run(mode)
@@ -190,7 +191,7 @@ def _run_fetch(cfg, mode, symbols, time_frame, price_type, start, end):
         mode.upper(), ok, failed, total_rows, dt, dt / 60,
     )
 
-    if cfg.get("sheets", "enabled"):
+    if sync_sheets_after and cfg.get("sheets", "enabled"):
         from .sheets import sync as sheets_sync
 
         sheets_sync(cfg)
@@ -214,11 +215,12 @@ def main(argv=None):
 
     symbols, time_frame, price_type = _resolve(cfg, a)
     end = a.end or date.today().isoformat()
+    sync_sheets_after = not a.no_sheets
     if a.command == "backfill":
         start = a.start or cfg.get("source", "backfill_start")
-        return _run_fetch(cfg, "backfill", symbols, time_frame, price_type, start, end)
+        return _run_fetch(cfg, "backfill", symbols, time_frame, price_type, start, end, sync_sheets_after)
     if a.command == "daily":
-        return _run_fetch(cfg, "daily", symbols, time_frame, price_type, None, end)
+        return _run_fetch(cfg, "daily", symbols, time_frame, price_type, None, end, sync_sheets_after)
 
 
 if __name__ == "__main__":
