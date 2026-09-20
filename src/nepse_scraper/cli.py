@@ -162,10 +162,21 @@ def _run_fetch(cfg, mode, symbols, time_frame, price_type, start, end, sync_shee
                         fp.name,
                     )
                 except Exception as e:  # noqa: BLE001
-                    failed += 1
-                    log.error("[%d/%d] %s FAILED: %s", i, len(symbols), sym, e)
-                    if "empty data array" in str(e).lower():
-                        newly_dead.append(sym)
+                    is_empty = "empty data array" in str(e).lower()
+                    if is_empty and mode == "daily":
+                        # An empty *short* window only means "no trades in the
+                        # last few days" (thin funds, illiquid stocks) -- NOT
+                        # that the symbol is dead. Never blacklist from this,
+                        # and don't count it as a failure (it would flip the
+                        # scheduled task's exit code to 1 for no real reason).
+                        log.info("[%d/%d] %s no trades in the lookback window -- skipped",
+                                 i, len(symbols), sym)
+                    else:
+                        failed += 1
+                        log.error("[%d/%d] %s FAILED: %s", i, len(symbols), sym, e)
+                        if is_empty and mode == "backfill":
+                            # Empty over the FULL history == genuinely no data.
+                            newly_dead.append(sym)
                 if i < len(symbols):
                     time.sleep(pause)
     except Exception as e:  # noqa: BLE001  (browser/Cloudflare level failure)

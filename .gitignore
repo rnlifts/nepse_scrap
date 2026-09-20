@@ -24,3 +24,6 @@ config/service_account.json
 # os
 .DS_Store
 Thumbs.db
+
+# point-in-time DB snapshots handed to other agents -- large, never commit
+exports/
